@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>💘 Valentine?</title>
+    <style>
+      :root{
+        --text: rgba(255,255,255,0.95);
+        --muted: rgba(255,255,255,0.72);
+        --stroke: rgba(255,255,255,0.18);
+        --shadow: 0 24px 70px rgba(0,0,0,0.55);
+        --radius: 22px;
+      }
+      *{ box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; background:#000; overflow:hidden; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+      .stage{ position: fixed; inset: 0; background:#000; }
+      video{ position:absolute; inset:0; width:100%; height:100%; object-fit: cover; background:#000; }
+
+      .vignette{
+        position:absolute; inset:0; pointer-events:none;
+        background:
+          radial-gradient(1100px 700px at 70% 25%, rgba(255,255,255,0.08), transparent 55%),
+          linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.60));
+      }
+
+      .panel{
+        position:absolute; top:0; right:0;
+        height:100%; width:min(460px, 92vw);
+        padding: clamp(14px, 2.2vw, 28px);
+        display:grid; align-content:center; gap: 14px;
+        opacity: 0; transform: translateX(18px); pointer-events:none;
+        transition: opacity 320ms ease, transform 320ms ease;
+      }
+      .panel.show{ opacity:1; transform: translateX(0); pointer-events:auto; }
+
+      .card{
+        border-radius: var(--radius);
+        border: 1px solid var(--stroke);
+        background: rgba(0,0,0,0.28);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .title{ margin:0; font-size: clamp(22px, 2.6vw, 34px); letter-spacing: -0.3px; line-height: 1.05; color: var(--text); }
+      .sub{ margin: 10px 0 0; color: var(--muted); font-size: 14px; line-height: 1.35; }
+
+      .choices{ display:grid; gap: 14px; margin-top: 14px; }
+
+      .bigBtn{
+        appearance:none;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 18px;
+        padding: 22px 20px;
+        cursor:pointer;
+        color: var(--text);
+        font-weight: 900;
+        letter-spacing: 0.6px;
+        font-size: clamp(30px, 3.4vw, 48px);
+        transition: transform 180ms ease, filter 180ms ease, border-color 180ms ease;
+        position: relative;
+        overflow:hidden;
+        user-select:none;
+      }
+      .bigBtn::before{
+        content:"";
+        position:absolute; inset:0;
+        background: radial-gradient(900px 240px at 30% 20%, rgba(255,255,255,0.18), transparent 60%);
+        pointer-events:none;
+        opacity:0.9;
+      }
+      .bigBtn:hover{ transform: translateY(-2px); filter: brightness(1.03); border-color: rgba(255,255,255,0.28); }
+      .bigBtn:active{ transform: translateY(0) scale(0.99); }
+
+      .yes{ background: linear-gradient(160deg, rgba(216, 33, 67, 0.96), rgba(150, 18, 42, 0.96)); }
+      .no{ background: linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.08)); }
+
+      .cornerHeart{
+        position:absolute;
+        width: 10px; height: 10px;
+        background: rgba(255,255,255,0.9);
+        transform: rotate(45deg);
+        border-radius: 2px;
+        opacity: 0.95;
+      }
+      .cornerHeart::before, .cornerHeart::after{
+        content:"";
+        position:absolute;
+        width:10px; height:10px;
+        background: rgba(255,255,255,0.9);
+        border-radius: 50%;
+      }
+      .cornerHeart::before { left:-5px; top:0; }
+      .cornerHeart::after { top:-5px; left:0; }
+      .tl{ top:14px; left:14px; }
+      .br{ bottom:14px; right:14px; opacity:0.7; }
+
+      .gate{
+        position:absolute; inset:0;
+        display:grid; place-items:center;
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        z-index: 20;
+        transition: opacity 300ms ease;
+      }
+      .gate.hidden{ opacity:0; pointer-events:none; }
+
+      .gateCard{
+        width: min(520px, calc(100% - 36px));
+        border-radius: 22px;
+        border: 1px solid var(--stroke);
+        background: rgba(255,255,255,0.10);
+        box-shadow: var(--shadow);
+        padding: 18px;
+        color: var(--text);
+      }
+      .gateTitle{ margin:0 0 6px; font-size: 18px; }
+      .gateSub{ margin:0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.4; }
+
+      .startBtn{
+        width:100%;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.14);
+        color: var(--text);
+        border-radius: 16px;
+        padding: 14px 16px;
+        font-size: 16px;
+        font-weight: 800;
+        cursor:pointer;
+        transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      }
+      .startBtn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.28); }
+      .startBtn:active{ transform: translateY(0) scale(0.99); }
+
+      .hint{
+        position:absolute;
+        left: 16px;
+        bottom: 16px;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(0,0,0,0.25);
+        color: rgba(255,255,255,0.70);
+        font-size: 12px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 5;
+      }
+
+      /* Mobile / small screens: bottom stacked panel (TikTok-style) */
+@media (max-width: 860px){
+  .panel{
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+
+    height: auto;
+    width: 100%;
+
+    /* Safe-area friendly for iPhone */
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+
+    /* Turn the right-slide into a bottom-slide */
+    transform: translateY(18px);
+    opacity: 0;
+
+    /* Make it feel like a bottom sheet */
+    align-content: end;
+    gap: 12px;
+  }
+
+  .panel.show{
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .card{
+    /* a little tighter on mobile */
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .choices{
+    gap: 12px;
+  }
+
+  .bigBtn{
+    /* slightly shorter so both buttons fit comfortably */
+    padding: 18px 16px;
+    font-size: clamp(26px, 7vw, 40px);
+    border-radius: 18px;
+  }
+}
+
+    </style>
+  </head>
+
+  <body>
+    <div class="stage">
+      <video id="vid" playsinline preload="auto" muted poster="assets/poster.jpg">
+        <source src="assets/intro.mp4" type="video/mp4" />
+      </video>
+
+      <div class="vignette"></div>
+      <div class="hint" id="hint">Tap Start, then enjoy 🎬</div>
+
+      <!-- BACKGROUND MUSIC -->
+      <audio id="bgm" src="assets/music.mp3" preload="auto" loop></audio>
+
+      <!-- Sparkles -->
+      <audio id="sndClick" src="assets/click.mp3" preload="auto"></audio>
+      <audio id="sndHover" src="assets/hover.mp3" preload="auto"></audio>
+
+      <div class="gate" id="gate">
+        <div class="gateCard">
+          <p class="gateTitle">Tap to start 💘</p>
+          <p class="gateSub">This unlocks sound on phones (music + video + sparkles).</p>
+          <button class="startBtn" id="startBtn">Start</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panel">
+        <div class="card">
+          <h1 class="title">Will you be my Valentine?</h1>
+          <p class="sub">One button leads to happiness. The other leads to… negotiations 😅</p>
+
+          <div class="choices">
+            <button class="bigBtn yes" id="yesBtn">
+              <span class="cornerHeart tl"></span>
+              YES
+              <span class="cornerHeart br"></span>
+            </button>
+
+            <button class="bigBtn no" id="noBtn">
+              <span class="cornerHeart tl" style="opacity:.55"></span>
+              NO
+              <span class="cornerHeart br" style="opacity:.45"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ========= CONFIG =========
+      const INTRO_SRC = "assets/intro.mp4";
+      const YES_SRC   = "assets/yes.mp4";
+      const NO_SRC    = "assets/no.mp4";
+
+      // Freeze point: set to the exact second the question lands
+      const PAUSE_AT = 24;
+
+      // BGM volume settings (0.0 to 1.0)
+      const BGM_BASE_VOL = 0.18; // normal background level
+      const BGM_DUCK_VOL = 0.07; // during speech/video playback (clearer voice)
+
+      // ========= ELEMENTS =========
+      const v = document.getElementById("vid");
+      const gate = document.getElementById("gate");
+      const startBtn = document.getElementById("startBtn");
+      const panel = document.getElementById("panel");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const hint = document.getElementById("hint");
+
+      const bgm = document.getElementById("bgm");
+      const sndClick = document.getElementById("sndClick");
+      const sndHover = document.getElementById("sndHover");
+
+      let mode = "intro"; // intro | yes | no
+      let frozen = false;
+
+      // Smooth volume changes
+      function setBgmVolume(target, ms = 250) {
+        const start = bgm.volume;
+        const t0 = performance.now();
+        function step(t) {
+          const p = Math.min(1, (t - t0) / ms);
+          bgm.volume = start + (target - start) * p;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      async function startBgm() {
+        try {
+          bgm.volume = BGM_BASE_VOL;
+          const p = bgm.play();
+          if (p && typeof p.catch === "function") await p.catch(()=>{});
+        } catch(e) {}
+      }
+
+      function playSound(aud, vol=0.55){
+        try{
+          aud.pause();
+          aud.currentTime = 0;
+          aud.volume = vol;
+          const p = aud.play();
+          if (p && typeof p.catch === "function") p.catch(()=>{});
+        } catch(e){}
+      }
+
+      function showPanel(){ panel.classList.add("show"); }
+      function hidePanel(){ panel.classList.remove("show"); }
+
+      function freezeNow(){
+        if (frozen) return;
+        frozen = true;
+        v.pause();
+        hint.textContent = "👀";
+        setBgmVolume(BGM_BASE_VOL, 220); // bring music back a bit when frozen
+        showPanel();
+      }
+
+      async function loadAndPlay(src){
+        hidePanel();
+        frozen = false;
+
+        v.pause();
+        v.src = src;
+        v.load();
+
+        // duck music during video playback so voice stays clear
+        setBgmVolume(BGM_DUCK_VOL, 180);
+
+        // after Start click, audio is usually allowed
+        v.muted = false;
+
+        try { await v.play(); }
+        catch(e){
+          v.muted = true;
+          try { await v.play(); } catch(_){}
+        }
+      }
+
+      // Start: unlock audio, start intro + bgm
+      startBtn.addEventListener("click", async () => {
+        gate.classList.add("hidden");
+        hint.textContent = "Playing… 🎬";
+
+        mode = "intro";
+        frozen = false;
+
+        // Start background music
+        await startBgm();
+        setBgmVolume(BGM_DUCK_VOL, 200); // duck while intro is speaking
+
+        // Start intro video
+        v.muted = false;
+        v.src = INTRO_SRC;
+        v.load();
+
+        try { await v.play(); }
+        catch(e){
+          v.muted = true;
+          try { await v.play(); } catch(_){}
+        }
+      });
+
+      // Freeze at question time
+      v.addEventListener("timeupdate", () => {
+        if (mode !== "intro" || frozen) return;
+        if (v.currentTime >= PAUSE_AT) {
+          v.currentTime = PAUSE_AT;
+          freezeNow();
+        }
+      });
+
+      // Sparkles on hover/click
+      function attachSparkles(btn){
+        btn.addEventListener("mouseenter", () => playSound(sndHover, 0.30)); // desktop only
+        btn.addEventListener("click", () => playSound(sndClick, 0.60));     // desktop + mobile
+      }
+      attachSparkles(yesBtn);
+      attachSparkles(noBtn);
+
+      yesBtn.addEventListener("click", async () => {
+        mode = "yes";
+        hint.textContent = "💚";
+        await loadAndPlay(YES_SRC);
+      });
+
+      noBtn.addEventListener("click", async () => {
+        mode = "no";
+        hint.textContent = "💚";
+        await loadAndPlay(NO_SRC);
+      });
+
+      // When yes/no ends, bring music back to base volume
+      v.addEventListener("ended", () => {
+        setBgmVolume(BGM_BASE_VOL, 250);
+        if (mode === "yes") hint.textContent = "Best choice ✅";
+        if (mode === "no")  hint.textContent = "Crazy 😅";
+      });
+    </script>
+  </body>
+</html>
